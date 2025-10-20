@@ -28,19 +28,12 @@
     <div class="result" id="result">Готово — выберите "Крутить".</div>
     <div class="muted">Первый спин — валюты. После первого спина барабан автоматически переключится на числа 1–50.</div>
   </div>  <script>
-    // Простая, рабочая версия барабана на canvas.
-    // Ключевые улучшения:
-    // - корректный расчёт выбранного сегмента
-    // - правильный DPI-репорт для чёткого рендеринга
-    // - плавная анимация и подсветка выбранного сегмента
-
     const canvas = document.getElementById('wheel');
     const ctx = canvas.getContext('2d');
     const spinBtn = document.getElementById('spinBtn');
     const resetBtn = document.getElementById('resetBtn');
     const resultEl = document.getElementById('result');
 
-    // Начальные валюты
     const initialSegments = [
       'Bitcoin (BTC)', 'Ethereum (ETH)', 'TON', 'USDT', 'USDC', 'Litecoin (LTC)', 'Dogecoin (DOGE)', 'Ripple (XRP)'
     ];
@@ -48,7 +41,6 @@
     let segments = initialSegments.slice();
     let isNumbersMode = false;
 
-    // графика
     let dpr = Math.max(1, window.devicePixelRatio || 1);
     function resizeCanvas(){
       const size = Math.min(520, window.innerWidth - 40);
@@ -68,8 +60,7 @@
     function cy(){ return canvas.height/2; }
     function radius(){ return Math.min(canvas.width, canvas.height)/2 - 20*dpr; }
 
-    // вращение в радианах
-    let rotation = 0; // текущая абсолютная ротация
+    let rotation = 0;
     let spinning = false;
 
     function draw(highlightIndex = -1){
@@ -85,7 +76,6 @@
       ctx.translate(Cx, Cy);
       ctx.rotate(rotation);
 
-      // рисуем сегменты — начинаем от -PI/2 чтобы 0-й сегмент был вверху при rotation = 0
       for (let i=0;i<n;i++){
         const start = -Math.PI/2 + i*slice;
         const end = start + slice;
@@ -95,12 +85,10 @@
         ctx.arc(0,0,R,start,end);
         ctx.closePath();
 
-        // заливка
         const hue = Math.round((i/n)*360);
         ctx.fillStyle = `hsl(${hue} 60% 45%)`;
         ctx.fill();
 
-        // обводка или подсветка
         if (i === highlightIndex){
           ctx.lineWidth = 8*dpr;
           ctx.strokeStyle = 'rgba(255,255,200,0.95)';
@@ -110,79 +98,78 @@
         }
         ctx.stroke();
 
-        // текст
         ctx.save();
         const mid = start + slice/2;
         ctx.rotate(mid);
-        ctx.translate(R*0.6, 0);
+        // поднимаем текст выше центра — ближе к краю
+        const textRadius = isNumbersMode ? R*0.8 : R*0.6;
+        ctx.translate(textRadius, 0);
         ctx.rotate(Math.PI/2);
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        const fontSize = Math.max(14*dpr, Math.floor(R/8));
+
+        let fontSize;
+        if (isNumbersMode) {
+          fontSize = Math.max(26*dpr, R/6); // крупные цифры
+        } else {
+          fontSize = Math.max(14*dpr, Math.floor(R/8));
+        }
         ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // простой перенос длинных строк (разбиваем по пробелам)
         const label = segments[i];
-        const words = label.split(' ');
-        const lines = [];
-        let line = '';
-        for (let w of words){
-          const test = line ? line + ' ' + w : w;
-          if (ctx.measureText(test).width > R*0.6 && line){
-            lines.push(line);
-            line = w;
-          } else {
-            line = test;
+        if (isNumbersMode) {
+          ctx.fillText(label, 0, 0);
+        } else {
+          const words = label.split(' ');
+          const lines = [];
+          let line = '';
+          for (let w of words){
+            const test = line ? line + ' ' + w : w;
+            if (ctx.measureText(test).width > R*0.6 && line){
+              lines.push(line);
+              line = w;
+            } else {
+              line = test;
+            }
           }
-        }
-        if (line) lines.push(line);
-        const lh = fontSize * 1.05;
-        const offset = -((lines.length-1)/2)*lh;
-        for (let k=0;k<lines.length;k++){
-          ctx.fillText(lines[k], 0, offset + k*lh);
+          if (line) lines.push(line);
+          const lh = fontSize * 1.05;
+          const offset = -((lines.length-1)/2)*lh;
+          for (let k=0;k<lines.length;k++){
+            ctx.fillText(lines[k], 0, offset + k*lh);
+          }
         }
         ctx.restore();
       }
 
       ctx.restore();
 
-      // центр
       ctx.beginPath(); ctx.arc(Cx, Cy, 50*dpr, 0, Math.PI*2); ctx.fillStyle = 'rgba(7,18,35,0.9)'; ctx.fill();
-      // стрелка указатель — рисуется поверх canvas через DOM (в HTML) — поэтому здесь не нужен
     }
 
-    // корректный расчёт индекса, куда указатель сверху смотрит
     function getSelectedIndex(){
       const n = segments.length;
       const slice = (Math.PI*2)/n;
-      // вычисляем относительный угол от начала сегмента (мы рисовали сегменты начиная с -PI/2)
-      // после всех сокращений получается: rel = (-rotation mod 2PI)
       let rel = (-rotation) % (Math.PI*2);
       if (rel < 0) rel += Math.PI*2;
       const idx = Math.floor(rel / slice) % n;
       return idx;
     }
 
-    // анимация спина: задаём целевой угол и интерполируем easing'ом
     function spin(){
       if (spinning) return;
       spinning = true;
-      const n = segments.length;
-
-      // случайное количество оборотов + целевой сегмент (необязательно заранее определяем результат)
-      const extraRotations = 4 + Math.random()*4; // 4..8 оборотов
-      const randomOffset = Math.random() * Math.PI*2; // рандомная фаза
+      const extraRotations = 4 + Math.random()*4;
+      const randomOffset = Math.random() * Math.PI*2;
       const targetDelta = extraRotations * Math.PI*2 + randomOffset;
-
       const startRot = rotation;
       const targetRot = startRot + targetDelta;
-      const duration = 2500 + Math.random()*2000; // ms
+      const duration = 2500 + Math.random()*2000;
       const startT = performance.now();
 
       function frame(now){
         const t = Math.min(1, (now - startT)/duration);
-        // easeOutCubic
         const eased = 1 - Math.pow(1 - t, 3);
         rotation = startRot + (targetRot - startRot) * eased;
         draw();
@@ -190,7 +177,6 @@
           requestAnimationFrame(frame);
         } else {
           spinning = false;
-          // корректируем rotation в пределах 0..2PI для стабильности
           rotation = rotation % (Math.PI*2);
           if (rotation < 0) rotation += Math.PI*2;
           const idx = getSelectedIndex();
@@ -212,7 +198,6 @@
           clearInterval(iv);
           draw(idx);
           resultEl.innerHTML = `<strong>Выпало:</strong> ${value}`;
-          // если это первый спин на валюты, переключаем на числа
           if (!isNumbersMode){
             setTimeout(()=>{
               switchToNumbers();
@@ -239,10 +224,8 @@
       draw();
     });
 
-    // пробел — тоже спин
     window.addEventListener('keydown', (e)=>{ if (e.code === 'Space') { e.preventDefault(); spin(); } });
 
-    // начальный рендер
     draw();
   </script></body>
 </html>
