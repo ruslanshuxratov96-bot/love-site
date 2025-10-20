@@ -1,171 +1,198 @@
-<!DOCTYPE html><html lang="ru">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wheel Spinner</title>
+<title>Wildberries — копия</title>
 <style>
   body {
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    margin: 0;
+    padding: 0;
+  }
+
+  header {
+    background: linear-gradient(90deg, #d400c3, #7d00ff);
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+  .search {
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    height: 100vh;
-    background: radial-gradient(circle at center, #222 40%, #000 100%);
-    color: white;
-    font-family: 'Segoe UI', sans-serif;
+    padding: 10px;
+    background: #fff;
   }
-  canvas {
-    background: #111;
-    border-radius: 50%;
-    box-shadow: 0 0 25px #ffb70088;
-  }
-  button {
-    margin: 15px;
-    padding: 10px 25px;
-    font-size: 18px;
-    border: none;
+
+  .search input {
+    width: 80%;
+    padding: 10px;
     border-radius: 10px;
-    background: linear-gradient(90deg, #ffb700, #ff5500);
+    border: 1px solid #ccc;
+  }
+
+  .banner {
+    background: linear-gradient(135deg, #ff6ad5, #ffb36b);
     color: white;
-    cursor: pointer;
-    box-shadow: 0 0 10px #ffb700aa;
+    text-align: center;
+    padding: 20px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .products {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .product {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    width: 250px;
+    padding: 10px;
     transition: 0.3s;
   }
-  button:hover {
-    box-shadow: 0 0 20px #ff5500;
+
+  .product:hover {
+    transform: scale(1.03);
   }
-  #result {
-    margin-top: 20px;
-    font-size: 28px;
-    color: gold;
-    text-shadow: 0 0 10px gold, 0 0 20px red;
+
+  .product img {
+    width: 100%;
+    border-radius: 10px;
+  }
+
+  .price {
+    color: #e4008a;
     font-weight: bold;
+    font-size: 18px;
+  }
+
+  .discount {
+    color: #777;
+    text-decoration: line-through;
+    font-size: 14px;
+  }
+
+  .buy-btn {
+    background: linear-gradient(90deg, #d400c3, #7d00ff);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    width: 100%;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+
+  .buy-btn:hover {
+    background: linear-gradient(90deg, #a000b5, #5a00d1);
+  }
+
+  /* Всплывающее окно */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    width: 300px;
+    text-align: center;
+  }
+
+  .close-btn {
+    background: crimson;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+
+  .rating {
+    color: orange;
   }
 </style>
 </head>
 <body>
-  <canvas id="wheel" width="400" height="400"></canvas>
-  <div>
-    <button id="spin">Крутить</button>
-    <button id="reset">Сброс</button>
+
+<header>Wildberries.uz 🎁</header>
+
+<div class="search">
+  <input type="text" placeholder="Найти на Wildberries...">
+</div>
+
+<div class="banner">🎉 У нас день рождения — у вас скидки до -80%!</div>
+
+<div class="products">
+  <div class="product" data-name="Футболка UZcotton" data-price="93 300 сум" data-reviews="⭐ 4.9 — 63,278 оценок" data-desc="Мягкая хлопковая футболка, плотность 180 г/м².">
+    <img src="https://img.freepik.com/free-photo/front-view-man-wearing-blue-t-shirt_23-2149530933.jpg" alt="Футболка">
+    <p><b>UZcotton</b></p>
+    <p class="price">93 300 сум <span class="discount">169 700 сум</span></p>
+    <button class="buy-btn">🛒 Купить (27 октября)</button>
   </div>
-  <div id="result"></div><script>
-const canvas = document.getElementById('wheel');
-const ctx = canvas.getContext('2d');
-const spinBtn = document.getElementById('spin');
-const resetBtn = document.getElementById('reset');
-const resultDiv = document.getElementById('result');
-let items = ['Bitcoin', 'Ethereum', 'TON', 'USDT', 'BNB', 'Solana', 'XRP', 'TRON', 'Cardano', 'Polkadot'];
-let currentRotation = 0;
-let spinning = false;
-let numbersMode = false;
 
-function drawWheel() {
-  const radius = canvas.width / 2;
-  const slice = (2 * Math.PI) / items.length;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < items.length; i++) {
-    const angle = i * slice + currentRotation;
-    ctx.beginPath();
-    ctx.moveTo(radius, radius);
-    ctx.arc(radius, radius, radius, angle, angle + slice);
-    ctx.fillStyle = i % 2 === 0 ? '#ffb700' : '#ff5500';
-    ctx.fill();
-    ctx.save();
-    ctx.translate(radius, radius);
-    ctx.rotate(angle + slice / 2);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'white';
-    ctx.font = numbersMode ? 'bold 20px Arial' : 'bold 24px Arial';
-    ctx.fillText(items[i], radius - 15, 8);
-    ctx.restore();
-  }
-  ctx.beginPath();
-  ctx.moveTo(radius, 0);
-  ctx.lineTo(radius - 10, 20);
-  ctx.lineTo(radius + 10, 20);
-  ctx.closePath();
-  ctx.fillStyle = 'white';
-  ctx.fill();
-}
+  <div class="product" data-name="Джинсы JOYCITY" data-price="455 600 сум" data-reviews="⭐ 4.8 — 1,626 оценок" data-desc="Широкие джинсы с высокой посадкой, комфортная посадка.">
+    <img src="https://img.freepik.com/free-photo/woman-jeans-white-background_144627-27585.jpg" alt="Джинсы">
+    <p><b>JOYCITY</b></p>
+    <p class="price">455 600 сум <span class="discount">1 886 400 сум</span></p>
+    <button class="buy-btn">🛒 Купить (27 октября)</button>
+  </div>
+</div>
 
-function fireworks() {
-  const colors = ['gold', 'red'];
-  const particles = [];
-  const sides = [0, canvas.width];
-  for (let s = 0; s < sides.length; s++) {
-    for (let i = 0; i < 30; i++) {
-      particles.push({
-        x: sides[s],
-        y: canvas.height / 2,
-        dx: (Math.random() - 0.5) * 6 * (s === 0 ? 1 : -1),
-        dy: (Math.random() - 0.5) * 6,
-        life: 60,
-        color: colors[Math.floor(Math.random() * colors.length)]
-      });
-    }
-  }
-  function draw() {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-      ctx.fillStyle = p.color;
-      ctx.fill();
-      p.x += p.dx;
-      p.y += p.dy;
-      p.life--;
-    }
-    ctx.restore();
-  }
-  let anim = setInterval(() => {
-    drawWheel();
-    draw();
-    for (let i = particles.length - 1; i >= 0; i--) {
-      if (particles[i].life <= 0) particles.splice(i, 1);
-    }
-    if (particles.length === 0) clearInterval(anim);
-  }, 16);
-}
+<!-- Модальное окно -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3 id="modalName"></h3>
+    <p id="modalDesc"></p>
+    <p><b id="modalPrice"></b></p>
+    <p class="rating" id="modalReviews"></p>
+    <button class="close-btn">Закрыть</button>
+  </div>
+</div>
 
-function spinWheel() {
-  if (spinning) return;
-  spinning = true;
-  const spinTime = 3000;
-  const finalRotation = currentRotation + Math.random() * 10 + 10 * Math.PI;
-  const start = performance.now();
-  function animate(now) {
-    const progress = Math.min((now - start) / spinTime, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    currentRotation += (finalRotation - currentRotation) * eased;
-    drawWheel();
-    if (progress < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      spinning = false;
-      const index = Math.floor((items.length - ((currentRotation % (2 * Math.PI)) / (2 * Math.PI)) * items.length)) % items.length;
-      const result = items[index];
-      resultDiv.textContent = result;
-      fireworks();
-      if (!numbersMode) {
-        items = Array.from({length: 10}, (_, i) => (i + 1).toString());
-        numbersMode = true;
-      }
-    }
-  }
-  requestAnimationFrame(animate);
-}
+<script>
+  const buttons = document.querySelectorAll('.buy-btn');
+  const modal = document.getElementById('modal');
+  const closeBtn = document.querySelector('.close-btn');
 
-spinBtn.onclick = spinWheel;
-resetBtn.onclick = () => {
-  items = ['Bitcoin', 'Ethereum', 'TON', 'USDT', 'BNB', 'Solana', 'XRP', 'TRON', 'Cardano', 'Polkadot'];
-  numbersMode = false;
-  resultDiv.textContent = '';
-  drawWheel();
-};
+  buttons.forEach(btn => {
+    btn.addEventListener('click', e => {
+      const product = e.target.closest('.product');
+      document.getElementById('modalName').textContent = product.dataset.name;
+      document.getElementById('modalDesc').textContent = product.dataset.desc;
+      document.getElementById('modalPrice').textContent = product.dataset.price;
+      document.getElementById('modalReviews').textContent = product.dataset.reviews;
+      modal.style.display = 'flex';
+    });
+  });
 
-drawWheel();
-</script></body>
-           </html>
+  closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+</script>
+
+</body>
+</html>
