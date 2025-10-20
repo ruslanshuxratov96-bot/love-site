@@ -1,1 +1,171 @@
+<!DOCTYPE html><html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wheel Spinner</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: radial-gradient(circle at center, #222 40%, #000 100%);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  canvas {
+    background: #111;
+    border-radius: 50%;
+    box-shadow: 0 0 25px #ffb70088;
+  }
+  button {
+    margin: 15px;
+    padding: 10px 25px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #ffb700, #ff5500);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 0 10px #ffb700aa;
+    transition: 0.3s;
+  }
+  button:hover {
+    box-shadow: 0 0 20px #ff5500;
+  }
+  #result {
+    margin-top: 20px;
+    font-size: 28px;
+    color: gold;
+    text-shadow: 0 0 10px gold, 0 0 20px red;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+  <canvas id="wheel" width="400" height="400"></canvas>
+  <div>
+    <button id="spin">Крутить</button>
+    <button id="reset">Сброс</button>
+  </div>
+  <div id="result"></div><script>
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const spinBtn = document.getElementById('spin');
+const resetBtn = document.getElementById('reset');
+const resultDiv = document.getElementById('result');
+let items = ['Bitcoin', 'Ethereum', 'TON', 'USDT', 'BNB', 'Solana', 'XRP', 'TRON', 'Cardano', 'Polkadot'];
+let currentRotation = 0;
+let spinning = false;
+let numbersMode = false;
 
+function drawWheel() {
+  const radius = canvas.width / 2;
+  const slice = (2 * Math.PI) / items.length;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < items.length; i++) {
+    const angle = i * slice + currentRotation;
+    ctx.beginPath();
+    ctx.moveTo(radius, radius);
+    ctx.arc(radius, radius, radius, angle, angle + slice);
+    ctx.fillStyle = i % 2 === 0 ? '#ffb700' : '#ff5500';
+    ctx.fill();
+    ctx.save();
+    ctx.translate(radius, radius);
+    ctx.rotate(angle + slice / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'white';
+    ctx.font = numbersMode ? 'bold 20px Arial' : 'bold 24px Arial';
+    ctx.fillText(items[i], radius - 15, 8);
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.moveTo(radius, 0);
+  ctx.lineTo(radius - 10, 20);
+  ctx.lineTo(radius + 10, 20);
+  ctx.closePath();
+  ctx.fillStyle = 'white';
+  ctx.fill();
+}
+
+function fireworks() {
+  const colors = ['gold', 'red'];
+  const particles = [];
+  const sides = [0, canvas.width];
+  for (let s = 0; s < sides.length; s++) {
+    for (let i = 0; i < 30; i++) {
+      particles.push({
+        x: sides[s],
+        y: canvas.height / 2,
+        dx: (Math.random() - 0.5) * 6 * (s === 0 ? 1 : -1),
+        dy: (Math.random() - 0.5) * 6,
+        life: 60,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      });
+    }
+  }
+  function draw() {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      p.x += p.dx;
+      p.y += p.dy;
+      p.life--;
+    }
+    ctx.restore();
+  }
+  let anim = setInterval(() => {
+    drawWheel();
+    draw();
+    for (let i = particles.length - 1; i >= 0; i--) {
+      if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+    if (particles.length === 0) clearInterval(anim);
+  }, 16);
+}
+
+function spinWheel() {
+  if (spinning) return;
+  spinning = true;
+  const spinTime = 3000;
+  const finalRotation = currentRotation + Math.random() * 10 + 10 * Math.PI;
+  const start = performance.now();
+  function animate(now) {
+    const progress = Math.min((now - start) / spinTime, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    currentRotation += (finalRotation - currentRotation) * eased;
+    drawWheel();
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      const index = Math.floor((items.length - ((currentRotation % (2 * Math.PI)) / (2 * Math.PI)) * items.length)) % items.length;
+      const result = items[index];
+      resultDiv.textContent = result;
+      fireworks();
+      if (!numbersMode) {
+        items = Array.from({length: 10}, (_, i) => (i + 1).toString());
+        numbersMode = true;
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+spinBtn.onclick = spinWheel;
+resetBtn.onclick = () => {
+  items = ['Bitcoin', 'Ethereum', 'TON', 'USDT', 'BNB', 'Solana', 'XRP', 'TRON', 'Cardano', 'Polkadot'];
+  numbersMode = false;
+  resultDiv.textContent = '';
+  drawWheel();
+};
+
+drawWheel();
+</script></body>
+           </html>
